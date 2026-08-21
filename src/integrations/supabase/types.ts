@@ -14,16 +14,441 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      balances: {
+        Row: {
+          amount: number
+          symbol: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          symbol: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          symbol?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      investment_plans: {
+        Row: {
+          active: boolean
+          created_at: string
+          duration_days: number
+          id: string
+          max_amount: number
+          min_amount: number
+          name: string
+          profit_percent: number
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          duration_days: number
+          id?: string
+          max_amount?: number
+          min_amount?: number
+          name: string
+          profit_percent: number
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          duration_days?: number
+          id?: string
+          max_amount?: number
+          min_amount?: number
+          name?: string
+          profit_percent?: number
+        }
+        Relationships: []
+      }
+      investments: {
+        Row: {
+          amount: number
+          created_at: string
+          duration_days: number
+          end_at: string
+          id: string
+          plan_id: string | null
+          plan_name: string
+          profit_amount: number
+          profit_percent: number
+          start_at: string
+          status: string
+          symbol: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          duration_days: number
+          end_at: string
+          id?: string
+          plan_id?: string | null
+          plan_name: string
+          profit_amount: number
+          profit_percent: number
+          start_at?: string
+          status?: string
+          symbol?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          duration_days?: number
+          end_at?: string
+          id?: string
+          plan_id?: string | null
+          plan_name?: string
+          profit_amount?: number
+          profit_percent?: number
+          start_at?: string
+          status?: string
+          symbol?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "investments_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "investment_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      kyc_submissions: {
+        Row: {
+          admin_note: string | null
+          created_at: string
+          document_path: string | null
+          full_name: string
+          id: string
+          reviewed_at: string | null
+          selfie_path: string | null
+          status: Database["public"]["Enums"]["review_status"]
+          user_id: string
+        }
+        Insert: {
+          admin_note?: string | null
+          created_at?: string
+          document_path?: string | null
+          full_name: string
+          id?: string
+          reviewed_at?: string | null
+          selfie_path?: string | null
+          status?: Database["public"]["Enums"]["review_status"]
+          user_id: string
+        }
+        Update: {
+          admin_note?: string | null
+          created_at?: string
+          document_path?: string | null
+          full_name?: string
+          id?: string
+          reviewed_at?: string | null
+          selfie_path?: string | null
+          status?: Database["public"]["Enums"]["review_status"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string | null
+          full_name: string | null
+          id: string
+          kyc_status: Database["public"]["Enums"]["kyc_status"]
+          referral_code: string
+          referral_earnings: number
+          referred_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id: string
+          kyc_status?: Database["public"]["Enums"]["kyc_status"]
+          referral_code: string
+          referral_earnings?: number
+          referred_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          kyc_status?: Database["public"]["Enums"]["kyc_status"]
+          referral_code?: string
+          referral_earnings?: number
+          referred_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_referred_by_fkey"
+            columns: ["referred_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      swaps: {
+        Row: {
+          created_at: string
+          from_amount: number
+          from_symbol: string
+          id: string
+          network_fee_usd: number
+          rate: number
+          status: string
+          to_amount: number
+          to_symbol: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          from_amount: number
+          from_symbol: string
+          id?: string
+          network_fee_usd?: number
+          rate: number
+          status?: string
+          to_amount: number
+          to_symbol: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          from_amount?: number
+          from_symbol?: string
+          id?: string
+          network_fee_usd?: number
+          rate?: number
+          status?: string
+          to_amount?: number
+          to_symbol?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          note: string | null
+          status: string
+          symbol: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          note?: string | null
+          status?: string
+          symbol: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          note?: string | null
+          status?: string
+          symbol?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      wallet_addresses: {
+        Row: {
+          address: string
+          created_at: string
+          id: string
+          network: string
+          symbol: string
+          user_id: string | null
+        }
+        Insert: {
+          address: string
+          created_at?: string
+          id?: string
+          network: string
+          symbol: string
+          user_id?: string | null
+        }
+        Update: {
+          address?: string
+          created_at?: string
+          id?: string
+          network?: string
+          symbol?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      withdrawals: {
+        Row: {
+          address: string
+          admin_note: string | null
+          amount: number
+          created_at: string
+          id: string
+          reviewed_at: string | null
+          source: string
+          status: Database["public"]["Enums"]["review_status"]
+          symbol: string
+          user_id: string
+        }
+        Insert: {
+          address: string
+          admin_note?: string | null
+          amount: number
+          created_at?: string
+          id?: string
+          reviewed_at?: string | null
+          source?: string
+          status?: Database["public"]["Enums"]["review_status"]
+          symbol: string
+          user_id: string
+        }
+        Update: {
+          address?: string
+          admin_note?: string | null
+          amount?: number
+          created_at?: string
+          id?: string
+          reviewed_at?: string | null
+          source?: string
+          status?: Database["public"]["Enums"]["review_status"]
+          symbol?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      adjust_balance: {
+        Args: { _delta: number; _symbol: string; _user_id: string }
+        Returns: number
+      }
+      admin_adjust_balance: {
+        Args: {
+          _delta: number
+          _note?: string
+          _symbol: string
+          _user_id: string
+        }
+        Returns: number
+      }
+      admin_review_kyc: {
+        Args: { _approve: boolean; _id: string; _note?: string }
+        Returns: undefined
+      }
+      admin_review_withdrawal: {
+        Args: { _approve: boolean; _id: string; _note?: string }
+        Returns: undefined
+      }
+      admin_stats: { Args: never; Returns: Json }
+      admin_users: {
+        Args: never
+        Returns: {
+          created_at: string
+          email: string
+          full_name: string
+          id: string
+          kyc_status: Database["public"]["Enums"]["kyc_status"]
+          referral_code: string
+          referral_earnings: number
+          referred_count: number
+          usdt_balance: number
+        }[]
+      }
+      app_claim_investment: {
+        Args: { _investment_id: string }
+        Returns: number
+      }
+      app_invest: {
+        Args: { _amount: number; _plan_id: string }
+        Returns: string
+      }
+      app_request_withdrawal: {
+        Args: {
+          _address: string
+          _amount: number
+          _source?: string
+          _symbol: string
+        }
+        Returns: string
+      }
+      app_submit_kyc: {
+        Args: {
+          _document_path: string
+          _full_name: string
+          _selfie_path: string
+        }
+        Returns: string
+      }
+      app_swap: {
+        Args: {
+          _fee: number
+          _from: string
+          _from_amount: number
+          _rate: number
+          _to: string
+          _to_amount: number
+        }
+        Returns: string
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "user"
+      kyc_status: "none" | "pending" | "approved" | "rejected"
+      review_status: "pending" | "approved" | "rejected"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +575,10 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "user"],
+      kyc_status: ["none", "pending", "approved", "rejected"],
+      review_status: ["pending", "approved", "rejected"],
+    },
   },
 } as const
