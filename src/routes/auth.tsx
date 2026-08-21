@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -67,14 +68,21 @@ function AuthPage() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
   const [fullName, setFullName] = useState("");
   const [referral, setReferral] = useState(search.ref ?? "");
 
   const [busy, setBusy] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
 
+  // Password visibility
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] =
+    useState(false);
+
   /*
-   * If already authenticated, go to wallet.
+   * Redirect authenticated users to the wallet.
    */
   useEffect(() => {
     if (!loading && session) {
@@ -86,7 +94,7 @@ function AuthPage() {
   }, [loading, session, navigate]);
 
   /*
-   * Keep the selected mode synchronized with the URL.
+   * Keep search parameters synchronized.
    */
   useEffect(() => {
     if (search.mode) {
@@ -119,11 +127,28 @@ function AuthPage() {
       return;
     }
 
+    /*
+     * Check password confirmation during signup.
+     */
+    if (mode === "signup") {
+      if (!fullName.trim()) {
+        toast.error("Please enter your full name");
+        return;
+      }
+
+      if (password !== confirmPassword) {
+        toast.error("Passwords do not match");
+        return;
+      }
+    }
+
     setBusy(true);
 
     try {
       /*
+       * =========================
        * SIGN UP
+       * =========================
        */
       if (mode === "signup") {
         const { data, error } =
@@ -153,8 +178,7 @@ function AuthPage() {
         }
 
         /*
-         * If email confirmation is enabled,
-         * Supabase won't return an active session.
+         * Email confirmation is required.
          */
         if (!data.session) {
           setEmailSent(true);
@@ -167,10 +191,11 @@ function AuthPage() {
         }
 
         /*
-         * If email confirmation is disabled,
-         * the user can be sent directly to wallet.
+         * Email confirmation is disabled.
          */
-        toast.success("Account created successfully");
+        toast.success(
+          "Account created successfully",
+        );
 
         void navigate({
           to: "/wallet",
@@ -181,7 +206,9 @@ function AuthPage() {
       }
 
       /*
+       * =========================
        * LOGIN
+       * =========================
        */
       const { error } =
         await supabase.auth.signInWithPassword({
@@ -211,56 +238,6 @@ function AuthPage() {
   }
 
   /*
-   * GOOGLE OAUTH
-   *
-   * Uses Supabase directly.
-   *
-   * The browser will automatically redirect
-   * to Google. After authentication Google
-   * returns to Supabase, and Supabase sends
-   * the user back to /auth.
-   */
-  async function handleGoogle() {
-    setBusy(true);
-
-    try {
-      const redirectTo =
-        `${window.location.origin}/auth`;
-
-      const { error } =
-        await supabase.auth.signInWithOAuth({
-          provider: "google",
-
-          options: {
-            redirectTo,
-
-            queryParams: {
-              access_type: "offline",
-              prompt: "select_account",
-            },
-          },
-        });
-
-      if (error) {
-        throw error;
-      }
-
-      /*
-       * Supabase handles the redirect.
-       * Do not navigate manually here.
-       */
-    } catch (error) {
-      setBusy(false);
-
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "Google sign-in failed. Please try again.",
-      );
-    }
-  }
-
-  /*
    * Switch between login and signup.
    */
   function toggleMode() {
@@ -272,12 +249,21 @@ function AuthPage() {
     setMode(nextMode);
     setEmailSent(false);
 
+    // Reset password visibility
+    setShowPassword(false);
+    setShowConfirmPassword(false);
+
+    // Reset confirmation password
+    setConfirmPassword("");
+
     void navigate({
       to: "/auth",
       search: {
         mode: nextMode,
         ...(referral
-          ? { ref: referral }
+          ? {
+              ref: referral,
+            }
           : {}),
       },
       replace: true,
@@ -329,14 +315,25 @@ function AuthPage() {
               <span className="font-medium text-foreground">
                 {email}
               </span>
-              . Open it to activate your wallet,
-              then sign in.
+              .
+              <br />
+              Open the email and confirm your
+              account before signing in.
             </p>
 
             <button
               type="button"
               onClick={() => {
                 setEmailSent(false);
+                setMode("login");
+
+                void navigate({
+                  to: "/auth",
+                  search: {
+                    mode: "login",
+                  },
+                  replace: true,
+                });
               }}
               className="mt-3 text-xs font-semibold text-primary hover:underline"
             >
@@ -345,7 +342,7 @@ function AuthPage() {
           </div>
         )}
 
-        {/* Authentication form */}
+        {/* Form */}
         <form
           onSubmit={handleSubmit}
           className="mt-6 space-y-4"
@@ -397,25 +394,112 @@ function AuthPage() {
               Password
             </Label>
 
-            <Input
-              id="password"
-              type="password"
-              autoComplete={
-                mode === "signup"
-                  ? "new-password"
-                  : "current-password"
-              }
-              value={password}
-              onChange={(event) =>
-                setPassword(
-                  event.target.value,
-                )
-              }
-              placeholder="At least 8 characters"
-              required
-              minLength={8}
-            />
+            <div className="relative">
+              <Input
+                id="password"
+                type={
+                  showPassword
+                    ? "text"
+                    : "password"
+                }
+                autoComplete={
+                  mode === "signup"
+                    ? "new-password"
+                    : "current-password"
+                }
+                value={password}
+                onChange={(event) =>
+                  setPassword(
+                    event.target.value,
+                  )
+                }
+                placeholder="At least 8 characters"
+                minLength={8}
+                required
+                className="pr-11"
+              />
+
+              <button
+                type="button"
+                onClick={() =>
+                  setShowPassword(
+                    (value) => !value,
+                  )
+                }
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-2 text-muted-foreground hover:bg-accent hover:text-foreground"
+                aria-label={
+                  showPassword
+                    ? "Hide password"
+                    : "Show password"
+                }
+              >
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
+              </button>
+            </div>
+
+            {mode === "signup" && (
+              <p className="text-xs text-muted-foreground">
+                Password must contain at least 8
+                characters.
+              </p>
+            )}
           </div>
+
+          {/* Confirm password */}
+          {mode === "signup" && (
+            <div className="space-y-1.5">
+              <Label htmlFor="confirmPassword">
+                Confirm password
+              </Label>
+
+              <div className="relative">
+                <Input
+                  id="confirmPassword"
+                  type={
+                    showConfirmPassword
+                      ? "text"
+                      : "password"
+                  }
+                  autoComplete="new-password"
+                  value={confirmPassword}
+                  onChange={(event) =>
+                    setConfirmPassword(
+                      event.target.value,
+                    )
+                  }
+                  placeholder="Enter your password again"
+                  minLength={8}
+                  required
+                  className="pr-11"
+                />
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setShowConfirmPassword(
+                      (value) => !value,
+                    )
+                  }
+                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-2 text-muted-foreground hover:bg-accent hover:text-foreground"
+                  aria-label={
+                    showConfirmPassword
+                      ? "Hide confirmation password"
+                      : "Show confirmation password"
+                  }
+                >
+                  {showConfirmPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Referral */}
           {mode === "signup" && (
@@ -455,52 +539,7 @@ function AuthPage() {
           </Button>
         </form>
 
-        {/* Divider */}
-        <div className="my-5 flex items-center gap-3 text-xs text-muted-foreground">
-          <span className="h-px flex-1 bg-border" />
-
-          <span>or</span>
-
-          <span className="h-px flex-1 bg-border" />
-        </div>
-
-        {/* Google */}
-        <Button
-          type="button"
-          variant="outline"
-          disabled={busy}
-          onClick={handleGoogle}
-          className="w-full"
-        >
-          <svg
-            className="mr-2 h-4 w-4"
-            viewBox="0 0 24 24"
-            aria-hidden="true"
-          >
-            <path
-              fill="#4285F4"
-              d="M21.35 12.27c0-.72-.06-1.42-.18-2.09H12v3.96h5.23a4.47 4.47 0 0 1-1.94 2.93v2.44h3.14c1.84-1.69 2.92-4.18 2.92-7.24Z"
-            />
-
-            <path
-              fill="#34A853"
-              d="M12 21.5c2.63 0 4.84-.87 6.45-2.36l-3.14-2.44c-.87.58-1.98.92-3.31.92-2.54 0-4.69-1.72-5.46-4.03H3.3v2.52A9.74 9.74 0 0 0 12 21.5Z"
-            />
-
-            <path
-              fill="#FBBC05"
-              d="M6.54 13.59a5.86 5.86 0 0 1 0-3.18V7.89H3.3a9.74 9.74 0 0 0 0 8.22l3.24-2.52Z"
-            />
-
-            <path
-              fill="#EA4335"
-              d="M12 6.38c1.43 0 2.71.49 3.72 1.46l2.79-2.79C16.83 3.5 14.63 2.5 12 2.5a9.74 9.74 0 0 0-8.7 5.39l3.24 2.52C7.31 8.1 9.46 6.38 12 6.38Z"
-            />
-          </svg>
-
-    
-
-        {/* Switch mode */}
+        {/* Login / Signup switch */}
         <button
           type="button"
           onClick={toggleMode}
@@ -510,14 +549,14 @@ function AuthPage() {
           {mode === "signup" ? (
             <>
               Already registered?{" "}
-              <span className="text-primary">
+              <span className="font-medium text-primary">
                 Sign in
               </span>
             </>
           ) : (
             <>
               New here?{" "}
-              <span className="text-primary">
+              <span className="font-medium text-primary">
                 Create an account
               </span>
             </>
