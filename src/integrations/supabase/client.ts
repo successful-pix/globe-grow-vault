@@ -1,46 +1,26 @@
-import { supabase } from "../supabase/client";
+import { createClient } from "@supabase/supabase-js";
+import type { Database } from "./types";
 
-export const auth = {
-  signIn: async (email: string, password: string) => {
-    return await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_PUBLISHABLE_KEY =
+  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+if (!SUPABASE_URL) {
+  throw new Error("Missing VITE_SUPABASE_URL");
+}
+
+if (!SUPABASE_PUBLISHABLE_KEY) {
+  throw new Error("Missing VITE_SUPABASE_PUBLISHABLE_KEY");
+}
+
+export const supabase = createClient<Database>(
+  SUPABASE_URL,
+  SUPABASE_PUBLISHABLE_KEY,
+  {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+    },
   },
-
-  signUp: async (email: string, password: string) => {
-    return await supabase.auth.signUp({
-      email,
-      password,
-    });
-  },
-
-  signOut: async () => {
-    return await supabase.auth.signOut();
-  },
-
-  getSession: async () => {
-    return await supabase.auth.getSession();
-  },
-
-  getUser: async () => {
-    return await supabase.auth.getUser();
-  },
-
-  resetPassword: async (email: string) => {
-    return await supabase.auth.resetPasswordForEmail(email);
-  },
-
-  updatePassword: async (password: string) => {
-    return await supabase.auth.updateUser({
-      password,
-    });
-  },
-
-  onAuthStateChange: (
-    callback: Parameters<typeof supabase.auth.onAuthStateChange>[0]
-  ) => {
-    return supabase.auth.onAuthStateChange(callback);
-  },
-};
-
+);
