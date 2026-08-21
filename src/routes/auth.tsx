@@ -1,568 +1,402 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { Eye, EyeOff } from "lucide-react";
-import { toast } from "sonner";
-import { z } from "zod";
-
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useSession } from "@/hooks/useAppData";
-
-const searchSchema = z.object({
-  mode: z.enum(["login", "signup"]).optional(),
-  ref: z.string().max(16).optional(),
-});
 
 export const Route = createFileRoute("/auth")({
-  validateSearch: searchSchema,
-
-  head: () => ({
-    meta: [
-      {
-        title: "Sign in — International Digital",
-      },
-      {
-        name: "description",
-        content:
-          "Access your International Digital wallet, swaps and investment plans.",
-      },
-      {
-        property: "og:title",
-        content: "Sign in — International Digital",
-      },
-      {
-        property: "og:description",
-        content:
-          "Log in or create your International Digital crypto wallet account.",
-      },
-    ],
-  }),
-
   component: AuthPage,
 });
 
-const credentials = z.object({
-  email: z
-    .string()
-    .trim()
-    .email("Enter a valid email")
-    .max(255),
-
-  password: z
-    .string()
-    .min(8, "Password must be at least 8 characters")
-    .max(72),
-});
-
 function AuthPage() {
-  const search = Route.useSearch();
   const navigate = useNavigate();
 
-  const { session, loading } = useSession();
-
-  const [mode, setMode] = useState<"login" | "signup">(
-    search.mode ?? "login",
-  );
+  const [mode, setMode] = useState<"login" | "signup">("login");
+  const [step, setStep] = useState<"auth" | "otp">("auth");
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const [otp, setOtp] = useState("");
 
-  const [fullName, setFullName] = useState("");
-  const [referral, setReferral] = useState(search.ref ?? "");
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
 
-  const [busy, setBusy] = useState(false);
-  const [emailSent, setEmailSent] = useState(false);
+  async function handleSignup(e: React.FormEvent) {
+    e.preventDefault();
 
-  // Password visibility
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] =
-    useState(false);
-
-  /*
-   * Redirect authenticated users to the wallet.
-   */
-  useEffect(() => {
-    if (!loading && session) {
-      void navigate({
-        to: "/wallet",
-        replace: true,
-      });
-    }
-  }, [loading, session, navigate]);
-
-  /*
-   * Keep search parameters synchronized.
-   */
-  useEffect(() => {
-    if (search.mode) {
-      setMode(search.mode);
-    }
-
-    if (search.ref) {
-      setReferral(search.ref);
-    }
-  }, [search.mode, search.ref]);
-
-  /*
-   * Email/password authentication.
-   */
-  async function handleSubmit(
-    event: React.FormEvent<HTMLFormElement>,
-  ) {
-    event.preventDefault();
-
-    const parsed = credentials.safeParse({
-      email,
-      password,
-    });
-
-    if (!parsed.success) {
-      toast.error(
-        parsed.error.issues[0]?.message ??
-          "Invalid details",
-      );
-      return;
-    }
-
-    /*
-     * Check password confirmation during signup.
-     */
-    if (mode === "signup") {
-      if (!fullName.trim()) {
-        toast.error("Please enter your full name");
-        return;
-      }
-
-      if (password !== confirmPassword) {
-        toast.error("Passwords do not match");
-        return;
-      }
-    }
-
-    setBusy(true);
+    setLoading(true);
+    setError("");
+    setMessage("");
 
     try {
+      const { data, error } = await supabase.auth.signUp({
+        email: email.trim(),
+        password,
+      });
+
+      if (error) {
+        throw error;
+      }
+
       /*
-       * =========================
-       * SIGN UP
-       * =========================
+       * Supabase returns a user but, when email confirmation
+       * is enabled, the user is not verified yet.
+       *
+       * Do NOT navigate to the dashboard here.
        */
-      if (mode === "signup") {
-        const { data, error } =
-          await supabase.auth.signUp({
-            email: parsed.data.email,
-            password: parsed.data.password,
-
-            options: {
-              emailRedirectTo:
-                `${window.location.origin}/auth`,
-
-              data: {
-                full_name: fullName
-                  .trim()
-                  .slice(0, 80),
-
-                referral_code: referral
-                  .trim()
-                  .toUpperCase()
-                  .slice(0, 12),
-              },
-            },
-          });
-
-        if (error) {
-          throw error;
-        }
-
-        /*
-         * Email confirmation is required.
-         */
-        if (!data.session) {
-          setEmailSent(true);
-
-          toast.success(
-            "Check your email to confirm your account",
-          );
-
-          return;
-        }
-
-        /*
-         * Email confirmation is disabled.
-         */
-        toast.success(
-          "Account created successfully",
+      if (data.user && !data.session) {
+        setStep("otp");
+        setMessage(
+          `We sent a verification code to ${email.trim()}.`,
         );
-
-        void navigate({
-          to: "/wallet",
-          replace: true,
-        });
-
         return;
       }
 
       /*
-       * =========================
-       * LOGIN
-       * =========================
+       * If your Supabase project has email confirmation disabled,
+       * Supabase may create a session immediately.
+       *
+       * In that case you can go directly to the dashboard.
        */
-      const { error } =
+      if (data.session) {
+        await navigate({
+          to: "/",
+        });
+      }
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Unable to create your account.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleVerifyOtp(e: React.FormEvent) {
+    e.preventDefault();
+
+    setLoading(true);
+    setError("");
+    setMessage("");
+
+    try {
+      const { data, error } = await supabase.auth.verifyOtp({
+        email: email.trim(),
+        token: otp.trim(),
+        type: "signup",
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (!data.session) {
+        throw new Error(
+          "Verification succeeded, but no session was created. Please try signing in.",
+        );
+      }
+
+      setMessage("Email verified successfully.");
+
+      await navigate({
+        to: "/",
+      });
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Invalid or expired verification code.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleLogin(e: React.FormEvent) {
+    e.preventDefault();
+
+    setLoading(true);
+    setError("");
+    setMessage("");
+
+    try {
+      const { data, error } =
         await supabase.auth.signInWithPassword({
-          email: parsed.data.email,
-          password: parsed.data.password,
+          email: email.trim(),
+          password,
         });
 
       if (error) {
         throw error;
       }
 
-      toast.success("Welcome back");
+      /*
+       * If email confirmation is required, an unverified user
+       * normally cannot obtain a valid session.
+       */
+      if (!data.session) {
+        throw new Error(
+          "Please verify your email before signing in.",
+        );
+      }
 
-      void navigate({
-        to: "/wallet",
-        replace: true,
+      await navigate({
+        to: "/",
       });
-    } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "Something went wrong",
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Unable to sign in.",
       );
     } finally {
-      setBusy(false);
+      setLoading(false);
     }
   }
 
-  /*
-   * Switch between login and signup.
-   */
-  function toggleMode() {
-    const nextMode =
-      mode === "signup"
-        ? "login"
-        : "signup";
+  async function resendOtp() {
+    setLoading(true);
+    setError("");
+    setMessage("");
 
-    setMode(nextMode);
-    setEmailSent(false);
+    try {
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email: email.trim(),
+      });
 
-    // Reset password visibility
-    setShowPassword(false);
-    setShowConfirmPassword(false);
+      if (error) {
+        throw error;
+      }
 
-    // Reset confirmation password
-    setConfirmPassword("");
-
-    void navigate({
-      to: "/auth",
-      search: {
-        mode: nextMode,
-        ...(referral
-          ? {
-              ref: referral,
-            }
-          : {}),
-      },
-      replace: true,
-    });
+      setMessage("A new verification code has been sent.");
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Unable to resend the code.",
+      );
+    } finally {
+      setLoading(false);
+    }
   }
 
-  return (
-    <div className="relative min-h-screen bg-background">
-      {/* Background glow */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-80 glow-bg" />
+  if (step === "otp") {
+    return (
+      <main className="min-h-screen flex items-center justify-center p-6">
+        <div className="w-full max-w-md">
+          <div className="rounded-2xl border bg-white p-8 shadow-sm">
+            <h1 className="text-2xl font-bold">
+              Verify your email
+            </h1>
 
-      <div className="relative mx-auto w-full max-w-md px-5 pb-16 pt-12">
-        {/* Brand */}
-        <Link
-          to="/"
-          className="flex items-center gap-2"
-        >
-          <span className="flex h-10 w-10 items-center justify-center rounded-xl brand-gradient font-display text-sm font-bold text-primary-foreground">
-            ID
-          </span>
-
-          <span className="font-display text-base font-semibold">
-            International Digital
-          </span>
-        </Link>
-
-        {/* Heading */}
-        <h1 className="mt-9 font-display text-2xl font-bold">
-          {mode === "signup"
-            ? "Create your account"
-            : "Welcome back"}
-        </h1>
-
-        <p className="mt-2 text-sm text-muted-foreground">
-          {mode === "signup"
-            ? "Start holding, swapping and investing in minutes."
-            : "Sign in to your wallet and investments."}
-        </p>
-
-        {/* Email confirmation */}
-        {emailSent && (
-          <div className="mt-6 rounded-2xl border border-border bg-card p-4 text-sm shadow-sm">
-            <p className="font-medium text-primary">
-              Confirm your email
+            <p className="mt-2 text-sm text-gray-600">
+              Enter the verification code sent to:
             </p>
 
-            <p className="mt-1 text-muted-foreground">
-              We sent a confirmation link to{" "}
-              <span className="font-medium text-foreground">
-                {email}
-              </span>
-              .
-              <br />
-              Open the email and confirm your
-              account before signing in.
+            <p className="mt-1 font-medium">
+              {email}
             </p>
 
-            <button
-              type="button"
-              onClick={() => {
-                setEmailSent(false);
-                setMode("login");
-
-                void navigate({
-                  to: "/auth",
-                  search: {
-                    mode: "login",
-                  },
-                  replace: true,
-                });
-              }}
-              className="mt-3 text-xs font-semibold text-primary hover:underline"
+            <form
+              onSubmit={handleVerifyOtp}
+              className="mt-6 space-y-4"
             >
-              Back to sign in
-            </button>
-          </div>
-        )}
+              <div>
+                <label
+                  htmlFor="otp"
+                  className="mb-2 block text-sm font-medium"
+                >
+                  Verification code
+                </label>
 
-        {/* Form */}
-        <form
-          onSubmit={handleSubmit}
-          className="mt-6 space-y-4"
-        >
-          {/* Full name */}
-          {mode === "signup" && (
-            <div className="space-y-1.5">
-              <Label htmlFor="fullName">
-                Full name
-              </Label>
+                <input
+                  id="otp"
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  maxLength={6}
+                  value={otp}
+                  onChange={(e) =>
+                    setOtp(
+                      e.target.value
+                        .replace(/\D/g, "")
+                        .slice(0, 6),
+                    )
+                  }
+                  placeholder="Enter 6-digit code"
+                  className="w-full rounded-lg border px-4 py-3 text-center text-xl tracking-[0.4em] outline-none"
+                  required
+                />
+              </div>
 
-              <Input
-                id="fullName"
-                value={fullName}
-                maxLength={80}
-                onChange={(event) =>
-                  setFullName(
-                    event.target.value,
-                  )
-                }
-                placeholder="Ana Silva"
-                autoComplete="name"
-              />
-            </div>
-          )}
+              {error && (
+                <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600">
+                  {error}
+                </div>
+              )}
 
-          {/* Email */}
-          <div className="space-y-1.5">
-            <Label htmlFor="email">
-              Email
-            </Label>
+              {message && (
+                <div className="rounded-lg bg-green-50 p-3 text-sm text-green-700">
+                  {message}
+                </div>
+              )}
 
-            <Input
-              id="email"
-              type="email"
-              autoComplete="email"
-              value={email}
-              onChange={(event) =>
-                setEmail(event.target.value)
-              }
-              placeholder="you@email.com"
-              required
-            />
-          </div>
-
-          {/* Password */}
-          <div className="space-y-1.5">
-            <Label htmlFor="password">
-              Password
-            </Label>
-
-            <div className="relative">
-              <Input
-                id="password"
-                type={
-                  showPassword
-                    ? "text"
-                    : "password"
-                }
-                autoComplete={
-                  mode === "signup"
-                    ? "new-password"
-                    : "current-password"
-                }
-                value={password}
-                onChange={(event) =>
-                  setPassword(
-                    event.target.value,
-                  )
-                }
-                placeholder="At least 8 characters"
-                minLength={8}
-                required
-                className="pr-11"
-              />
+              <button
+                type="submit"
+                disabled={loading || otp.length < 6}
+                className="w-full rounded-lg bg-black px-4 py-3 font-medium text-white disabled:opacity-50"
+              >
+                {loading
+                  ? "Verifying..."
+                  : "Verify email"}
+              </button>
 
               <button
                 type="button"
-                onClick={() =>
-                  setShowPassword(
-                    (value) => !value,
-                  )
-                }
-                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-2 text-muted-foreground hover:bg-accent hover:text-foreground"
-                aria-label={
-                  showPassword
-                    ? "Hide password"
-                    : "Show password"
-                }
+                onClick={resendOtp}
+                disabled={loading}
+                className="w-full py-2 text-sm font-medium"
               >
-                {showPassword ? (
-                  <EyeOff className="h-4 w-4" />
-                ) : (
-                  <Eye className="h-4 w-4" />
-                )}
+                Resend code
               </button>
-            </div>
 
-            {mode === "signup" && (
-              <p className="text-xs text-muted-foreground">
-                Password must contain at least 8
-                characters.
-              </p>
-            )}
+              <button
+                type="button"
+                onClick={() => {
+                  setStep("auth");
+                  setOtp("");
+                  setError("");
+                  setMessage("");
+                }}
+                className="w-full py-2 text-sm text-gray-500"
+              >
+                Back
+              </button>
+            </form>
           </div>
+        </div>
+      </main>
+    );
+  }
 
-          {/* Confirm password */}
-          {mode === "signup" && (
-            <div className="space-y-1.5">
-              <Label htmlFor="confirmPassword">
-                Confirm password
-              </Label>
+  return (
+    <main className="min-h-screen flex items-center justify-center p-6">
+      <div className="w-full max-w-md">
+        <div className="rounded-2xl border bg-white p-8 shadow-sm">
+          <h1 className="text-2xl font-bold">
+            {mode === "login"
+              ? "Welcome back"
+              : "Create your account"}
+          </h1>
 
-              <div className="relative">
-                <Input
-                  id="confirmPassword"
-                  type={
-                    showConfirmPassword
-                      ? "text"
-                      : "password"
-                  }
-                  autoComplete="new-password"
-                  value={confirmPassword}
-                  onChange={(event) =>
-                    setConfirmPassword(
-                      event.target.value,
-                    )
-                  }
-                  placeholder="Enter your password again"
-                  minLength={8}
-                  required
-                  className="pr-11"
-                />
+          <p className="mt-2 text-sm text-gray-600">
+            {mode === "login"
+              ? "Sign in to continue."
+              : "Create an account with your email."}
+          </p>
 
-                <button
-                  type="button"
-                  onClick={() =>
-                    setShowConfirmPassword(
-                      (value) => !value,
-                    )
-                  }
-                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-2 text-muted-foreground hover:bg-accent hover:text-foreground"
-                  aria-label={
-                    showConfirmPassword
-                      ? "Hide confirmation password"
-                      : "Show confirmation password"
-                  }
-                >
-                  {showConfirmPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
-                </button>
-              </div>
-            </div>
-          )}
+          <form
+            onSubmit={
+              mode === "login"
+                ? handleLogin
+                : handleSignup
+            }
+            className="mt-6 space-y-4"
+          >
+            <div>
+              <label
+                htmlFor="email"
+                className="mb-2 block text-sm font-medium"
+              >
+                Email
+              </label>
 
-          {/* Referral */}
-          {mode === "signup" && (
-            <div className="space-y-1.5">
-              <Label htmlFor="referral">
-                Referral code (optional)
-              </Label>
-
-              <Input
-                id="referral"
-                value={referral}
-                maxLength={12}
-                onChange={(event) =>
-                  setReferral(
-                    event.target.value.toUpperCase(),
-                  )
+              <input
+                id="email"
+                type="email"
+                autoComplete="email"
+                value={email}
+                onChange={(e) =>
+                  setEmail(e.target.value)
                 }
-                placeholder="ABC12345"
-                autoComplete="off"
+                placeholder="you@example.com"
+                className="w-full rounded-lg border px-4 py-3 outline-none"
+                required
               />
             </div>
-          )}
 
-          {/* Submit */}
-          <Button
-            type="submit"
-            disabled={busy}
-            className="w-full brand-gradient font-display text-primary-foreground"
+            <div>
+              <label
+                htmlFor="password"
+                className="mb-2 block text-sm font-medium"
+              >
+                Password
+              </label>
+
+              <input
+                id="password"
+                type="password"
+                autoComplete={
+                  mode === "login"
+                    ? "current-password"
+                    : "new-password"
+                }
+                value={password}
+                onChange={(e) =>
+                  setPassword(e.target.value)
+                }
+                placeholder="••••••••"
+                className="w-full rounded-lg border px-4 py-3 outline-none"
+                required
+              />
+            </div>
+
+            {error && (
+              <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600">
+                {error}
+              </div>
+            )}
+
+            {message && (
+              <div className="rounded-lg bg-green-50 p-3 text-sm text-green-700">
+                {message}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full rounded-lg bg-black px-4 py-3 font-medium text-white disabled:opacity-50"
+            >
+              {loading
+                ? "Please wait..."
+                : mode === "login"
+                  ? "Sign in"
+                  : "Create account"}
+            </button>
+          </form>
+
+          <button
+            type="button"
+            onClick={() => {
+              setMode(
+                mode === "login"
+                  ? "signup"
+                  : "login",
+              );
+              setError("");
+              setMessage("");
+            }}
+            className="mt-6 w-full text-sm"
           >
-            {busy
-              ? mode === "signup"
-                ? "Creating account..."
-                : "Signing in..."
-              : mode === "signup"
-                ? "Create account"
-                : "Sign in"}
-          </Button>
-        </form>
-
-        {/* Login / Signup switch */}
-        <button
-          type="button"
-          onClick={toggleMode}
-          disabled={busy}
-          className="mt-6 w-full text-center text-sm text-muted-foreground disabled:opacity-50"
-        >
-          {mode === "signup" ? (
-            <>
-              Already registered?{" "}
-              <span className="font-medium text-primary">
-                Sign in
-              </span>
-            </>
-          ) : (
-            <>
-              New here?{" "}
-              <span className="font-medium text-primary">
-                Create an account
-              </span>
-            </>
-          )}
-        </button>
+            {mode === "login"
+              ? "Don't have an account? Sign up"
+              : "Already have an account? Sign in"}
+          </button>
+        </div>
       </div>
-    </div>
+    </main>
   );
 }
