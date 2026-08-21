@@ -498,8 +498,7 @@ function AuthPage() {
             />
           </svg>
 
-          Continue with Google
-        </Button>
+    
 
         {/* Switch mode */}
         <button
