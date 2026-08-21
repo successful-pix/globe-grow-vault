@@ -1,0 +1,14 @@
+REVOKE EXECUTE ON FUNCTION public.app_swap(text, text, numeric, numeric, numeric, numeric) FROM PUBLIC, anon;
+REVOKE EXECUTE ON FUNCTION public.app_invest(uuid, numeric) FROM PUBLIC, anon;
+REVOKE EXECUTE ON FUNCTION public.app_claim_investment(uuid) FROM PUBLIC, anon;
+REVOKE EXECUTE ON FUNCTION public.app_request_withdrawal(text, numeric, text, text) FROM PUBLIC, anon;
+REVOKE EXECUTE ON FUNCTION public.app_submit_kyc(text, text, text) FROM PUBLIC, anon;
+REVOKE EXECUTE ON FUNCTION public.admin_adjust_balance(uuid, text, numeric, text) FROM PUBLIC, anon;
+REVOKE EXECUTE ON FUNCTION public.admin_review_withdrawal(uuid, boolean, text) FROM PUBLIC, anon;
+REVOKE EXECUTE ON FUNCTION public.admin_review_kyc(uuid, boolean, text) FROM PUBLIC, anon;
+REVOKE EXECUTE ON FUNCTION public.admin_stats() FROM PUBLIC, anon;
+REVOKE EXECUTE ON FUNCTION public.admin_users() FROM PUBLIC, anon;
+REVOKE EXECUTE ON FUNCTION public.has_role(uuid, public.app_role) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.has_role(uuid, public.app_role) TO authenticated;
+REVOKE EXECUTE ON FUNCTION public.handle_new_user() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.adjust_balance(uuid, text, numeric) FROM PUBLIC, anon, authenticated;
