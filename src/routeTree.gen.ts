@@ -21,11 +21,11 @@ import { Route as AuthenticatedSwapRouteImport } from './routes/_authenticated/s
 import { Route as AuthenticatedWalletRouteImport } from './routes/_authenticated/wallet'
 import { Route as AuthenticatedWithdrawRouteImport } from './routes/_authenticated/withdraw'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin/index'
-import { Route as AuthenticatedAdminSupportRouteImport } from './routes/_authenticated/admin/support'
 import { Route as AuthenticatedMarketIndexRouteImport } from './routes/_authenticated/market.index'
 import { Route as AuthenticatedMarketSymbolRouteImport } from './routes/_authenticated/market.$symbol'
 import { Route as AuthenticatedSupportIndexRouteImport } from './routes/_authenticated/support/index'
 import { Route as AuthenticatedSupportTicketIdRouteImport } from './routes/_authenticated/support/$ticketId'
+import { Route as AuthenticatedAdminSupportIndexRouteImport } from './routes/_authenticated/admin/support/index'
 import { Route as AuthenticatedAdminSupportTicketIdRouteImport } from './routes/_authenticated/admin/support/$ticketId'
 
 const IndexRoute = IndexRouteImport.update({
@@ -87,12 +87,6 @@ const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
   path: '/admin/',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedAdminSupportRoute =
-  AuthenticatedAdminSupportRouteImport.update({
-    id: '/admin/support',
-    path: '/admin/support',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
 const AuthenticatedMarketIndexRoute =
   AuthenticatedMarketIndexRouteImport.update({
     id: '/market/',
@@ -117,11 +111,17 @@ const AuthenticatedSupportTicketIdRoute =
     path: '/support/$ticketId',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminSupportIndexRoute =
+  AuthenticatedAdminSupportIndexRouteImport.update({
+    id: '/admin/support/',
+    path: '/admin/support/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAdminSupportTicketIdRoute =
   AuthenticatedAdminSupportTicketIdRouteImport.update({
-    id: '/$ticketId',
-    path: '/$ticketId',
-    getParentRoute: () => AuthenticatedAdminSupportRoute,
+    id: '/admin/support/$ticketId',
+    path: '/admin/support/$ticketId',
+    getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
@@ -135,13 +135,13 @@ export interface FileRoutesByFullPath {
   '/swap': typeof AuthenticatedSwapRoute
   '/wallet': typeof AuthenticatedWalletRoute
   '/withdraw': typeof AuthenticatedWithdrawRoute
-  '/admin/support': typeof AuthenticatedAdminSupportRouteWithChildren
   '/market/$symbol': typeof AuthenticatedMarketSymbolRoute
   '/support/$ticketId': typeof AuthenticatedSupportTicketIdRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
   '/market/': typeof AuthenticatedMarketIndexRoute
   '/support/': typeof AuthenticatedSupportIndexRoute
   '/admin/support/$ticketId': typeof AuthenticatedAdminSupportTicketIdRoute
+  '/admin/support/': typeof AuthenticatedAdminSupportIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -154,13 +154,13 @@ export interface FileRoutesByTo {
   '/swap': typeof AuthenticatedSwapRoute
   '/wallet': typeof AuthenticatedWalletRoute
   '/withdraw': typeof AuthenticatedWithdrawRoute
-  '/admin/support': typeof AuthenticatedAdminSupportRouteWithChildren
   '/market/$symbol': typeof AuthenticatedMarketSymbolRoute
   '/support/$ticketId': typeof AuthenticatedSupportTicketIdRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
   '/market': typeof AuthenticatedMarketIndexRoute
   '/support': typeof AuthenticatedSupportIndexRoute
   '/admin/support/$ticketId': typeof AuthenticatedAdminSupportTicketIdRoute
+  '/admin/support': typeof AuthenticatedAdminSupportIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -175,13 +175,13 @@ export interface FileRoutesById {
   '/_authenticated/swap': typeof AuthenticatedSwapRoute
   '/_authenticated/wallet': typeof AuthenticatedWalletRoute
   '/_authenticated/withdraw': typeof AuthenticatedWithdrawRoute
-  '/_authenticated/admin/support': typeof AuthenticatedAdminSupportRouteWithChildren
   '/_authenticated/market/$symbol': typeof AuthenticatedMarketSymbolRoute
   '/_authenticated/support/$ticketId': typeof AuthenticatedSupportTicketIdRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/_authenticated/market/': typeof AuthenticatedMarketIndexRoute
   '/_authenticated/support/': typeof AuthenticatedSupportIndexRoute
   '/_authenticated/admin/support/$ticketId': typeof AuthenticatedAdminSupportTicketIdRoute
+  '/_authenticated/admin/support/': typeof AuthenticatedAdminSupportIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -196,13 +196,13 @@ export interface FileRouteTypes {
     | '/swap'
     | '/wallet'
     | '/withdraw'
-    | '/admin/support'
     | '/market/$symbol'
     | '/support/$ticketId'
     | '/admin/'
     | '/market/'
     | '/support/'
     | '/admin/support/$ticketId'
+    | '/admin/support/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -215,13 +215,13 @@ export interface FileRouteTypes {
     | '/swap'
     | '/wallet'
     | '/withdraw'
-    | '/admin/support'
     | '/market/$symbol'
     | '/support/$ticketId'
     | '/admin'
     | '/market'
     | '/support'
     | '/admin/support/$ticketId'
+    | '/admin/support'
   id:
     | '__root__'
     | '/'
@@ -235,13 +235,13 @@ export interface FileRouteTypes {
     | '/_authenticated/swap'
     | '/_authenticated/wallet'
     | '/_authenticated/withdraw'
-    | '/_authenticated/admin/support'
     | '/_authenticated/market/$symbol'
     | '/_authenticated/support/$ticketId'
     | '/_authenticated/admin/'
     | '/_authenticated/market/'
     | '/_authenticated/support/'
     | '/_authenticated/admin/support/$ticketId'
+    | '/_authenticated/admin/support/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -336,13 +336,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/admin/support': {
-      id: '/_authenticated/admin/support'
-      path: '/admin/support'
-      fullPath: '/admin/support'
-      preLoaderRoute: typeof AuthenticatedAdminSupportRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/market/': {
       id: '/_authenticated/market/'
       path: '/market'
@@ -371,30 +364,22 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSupportTicketIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/support/': {
+      id: '/_authenticated/admin/support/'
+      path: '/admin/support'
+      fullPath: '/admin/support/'
+      preLoaderRoute: typeof AuthenticatedAdminSupportIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin/support/$ticketId': {
       id: '/_authenticated/admin/support/$ticketId'
-      path: '/$ticketId'
+      path: '/admin/support/$ticketId'
       fullPath: '/admin/support/$ticketId'
       preLoaderRoute: typeof AuthenticatedAdminSupportTicketIdRouteImport
-      parentRoute: typeof AuthenticatedAdminSupportRoute
+      parentRoute: typeof AuthenticatedRouteRoute
     }
   }
 }
-
-interface AuthenticatedAdminSupportRouteChildren {
-  AuthenticatedAdminSupportTicketIdRoute: typeof AuthenticatedAdminSupportTicketIdRoute
-}
-
-const AuthenticatedAdminSupportRouteChildren: AuthenticatedAdminSupportRouteChildren =
-  {
-    AuthenticatedAdminSupportTicketIdRoute:
-      AuthenticatedAdminSupportTicketIdRoute,
-  }
-
-const AuthenticatedAdminSupportRouteWithChildren =
-  AuthenticatedAdminSupportRoute._addFileChildren(
-    AuthenticatedAdminSupportRouteChildren,
-  )
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedDepositRoute: typeof AuthenticatedDepositRoute
@@ -405,12 +390,13 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedSwapRoute: typeof AuthenticatedSwapRoute
   AuthenticatedWalletRoute: typeof AuthenticatedWalletRoute
   AuthenticatedWithdrawRoute: typeof AuthenticatedWithdrawRoute
-  AuthenticatedAdminSupportRoute: typeof AuthenticatedAdminSupportRouteWithChildren
   AuthenticatedMarketSymbolRoute: typeof AuthenticatedMarketSymbolRoute
   AuthenticatedSupportTicketIdRoute: typeof AuthenticatedSupportTicketIdRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
   AuthenticatedMarketIndexRoute: typeof AuthenticatedMarketIndexRoute
   AuthenticatedSupportIndexRoute: typeof AuthenticatedSupportIndexRoute
+  AuthenticatedAdminSupportTicketIdRoute: typeof AuthenticatedAdminSupportTicketIdRoute
+  AuthenticatedAdminSupportIndexRoute: typeof AuthenticatedAdminSupportIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -422,12 +408,14 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedSwapRoute: AuthenticatedSwapRoute,
   AuthenticatedWalletRoute: AuthenticatedWalletRoute,
   AuthenticatedWithdrawRoute: AuthenticatedWithdrawRoute,
-  AuthenticatedAdminSupportRoute: AuthenticatedAdminSupportRouteWithChildren,
   AuthenticatedMarketSymbolRoute: AuthenticatedMarketSymbolRoute,
   AuthenticatedSupportTicketIdRoute: AuthenticatedSupportTicketIdRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
   AuthenticatedMarketIndexRoute: AuthenticatedMarketIndexRoute,
   AuthenticatedSupportIndexRoute: AuthenticatedSupportIndexRoute,
+  AuthenticatedAdminSupportTicketIdRoute:
+    AuthenticatedAdminSupportTicketIdRoute,
+  AuthenticatedAdminSupportIndexRoute: AuthenticatedAdminSupportIndexRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
