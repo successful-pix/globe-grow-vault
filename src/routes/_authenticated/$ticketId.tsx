@@ -12,7 +12,7 @@ import {
 } from "@/lib/support";
 
 export const Route = createFileRoute(
-  "/_authenticated/support/$ticketId",
+  "/_authenticated/$ticketId",
 )({
   component: SupportChat,
 });
