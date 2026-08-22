@@ -201,6 +201,74 @@ export type Database = {
           },
         ]
       }
+      support_messages: {
+        Row: {
+          created_at: string
+          id: string
+          is_admin: boolean
+          message: string
+          sender_id: string
+          ticket_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_admin?: boolean
+          message: string
+          sender_id: string
+          ticket_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_admin?: boolean
+          message?: string
+          sender_id?: string
+          ticket_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_messages_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "support_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      support_tickets: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          priority: Database["public"]["Enums"]["ticket_priority"]
+          status: Database["public"]["Enums"]["ticket_status"]
+          subject: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          id?: string
+          priority?: Database["public"]["Enums"]["ticket_priority"]
+          status?: Database["public"]["Enums"]["ticket_status"]
+          subject: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          priority?: Database["public"]["Enums"]["ticket_priority"]
+          status?: Database["public"]["Enums"]["ticket_status"]
+          subject?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       swaps: {
         Row: {
           created_at: string
@@ -291,6 +359,39 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      wallet_address_audit: {
+        Row: {
+          changed_by: string
+          created_at: string
+          id: string
+          network: string
+          new_address: string
+          previous_address: string | null
+          symbol: string
+          target_user_id: string
+        }
+        Insert: {
+          changed_by: string
+          created_at?: string
+          id?: string
+          network: string
+          new_address: string
+          previous_address?: string | null
+          symbol: string
+          target_user_id: string
+        }
+        Update: {
+          changed_by?: string
+          created_at?: string
+          id?: string
+          network?: string
+          new_address?: string
+          previous_address?: string | null
+          symbol?: string
+          target_user_id?: string
         }
         Relationships: []
       }
@@ -386,6 +487,15 @@ export type Database = {
         Args: { _approve: boolean; _id: string; _note?: string }
         Returns: undefined
       }
+      admin_set_user_wallet: {
+        Args: {
+          _address: string
+          _network: string
+          _symbol: string
+          _user_id: string
+        }
+        Returns: string
+      }
       admin_stats: { Args: never; Returns: Json }
       admin_users: {
         Args: never
@@ -444,11 +554,14 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_admin: { Args: never; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "user"
       kyc_status: "none" | "pending" | "approved" | "rejected"
       review_status: "pending" | "approved" | "rejected"
+      ticket_priority: "low" | "normal" | "high" | "urgent"
+      ticket_status: "open" | "pending" | "resolved" | "closed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -579,6 +692,8 @@ export const Constants = {
       app_role: ["admin", "user"],
       kyc_status: ["none", "pending", "approved", "rejected"],
       review_status: ["pending", "approved", "rejected"],
+      ticket_priority: ["low", "normal", "high", "urgent"],
+      ticket_status: ["open", "pending", "resolved", "closed"],
     },
   },
 } as const
