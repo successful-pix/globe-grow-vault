@@ -6,7 +6,7 @@ import {
 } from "@/lib/support";
 
 export const Route = createFileRoute(
-  "/_authenticated/support",
+  "/_authenticated/support/",
 )({
   component: SupportPage,
 });
